@@ -4,6 +4,7 @@
              x:Class="GlobalClick.MainPage">
 
     <Grid
+        x:Name="gridUnderlay"
         RowDefinitions="*,200,*,*,*"
         ColumnDefinitions="*,2*,*"
         RowSpacing="20"
@@ -37,5 +38,12 @@
             Clicked="OnCounterClicked"
             VerticalOptions="Center" 
             HorizontalOptions="Center" />
+
+        <Entry            
+            Grid.Row="4"
+            Grid.Column="1"
+            BackgroundColor="White"
+            VerticalOptions="Center" 
+            HorizontalOptions="Fill"/>
     </Grid>
 </ContentPage>

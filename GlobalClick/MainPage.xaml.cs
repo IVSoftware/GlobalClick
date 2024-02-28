@@ -1,4 +1,5 @@
 ﻿using IVSoftware.Portable;
+using System.Diagnostics;
 
 namespace GlobalClick
 {
@@ -10,6 +11,7 @@ namespace GlobalClick
         public MainPage()
         {
             InitializeComponent();
+            TapGestureRecognizer tapGestureRecognizer;
             foreach (var desc in this.GetVisualTreeDescendants().OfType<View>())
             {
                 if (desc is Button button)
@@ -20,20 +22,55 @@ namespace GlobalClick
                 {
                     entry.TextChanged += localOnAnyInput;
                     entry.Focused += localOnAnyInput;
+                    entry.Completed += (sender, e) =>
+                    {
+                    };
                 }
                 else
                 {
-                    var tapGestureRecognizer = new TapGestureRecognizer();
+                    tapGestureRecognizer = new TapGestureRecognizer();
                     tapGestureRecognizer.Tapped += localOnAnyInput;
                     desc.GestureRecognizers.Add(tapGestureRecognizer);
                 }
 
                 void localOnAnyInput(object sender, EventArgs e)
                 {
-                    WatchdogTimer.StartOrRestart(
-                        initialAction: () => TimerRunning = true,
-                        completeAction: () => TimerRunning = false
-                    );
+                    // Close soft input if sender isn't an Entry control.
+                    if (!(sender is Entry))
+                    {
+                        localCloseSoftInput();
+                    }
+
+                    localStartOrRestartWDT();
+
+                    void localStartOrRestartWDT()
+                    {
+                        WatchdogTimer.StartOrRestart(
+                            initialAction: () =>
+                            {
+                                TimerRunning = true;
+                            },
+                            completeAction: () =>
+                            {
+                                if (this.GetVisualTreeDescendants().OfType<Entry>().Any(_ => _.IsFocused))
+                                {
+                                    // Do not pull the rug out when user is editing an entry.
+                                    localStartOrRestartWDT();
+                                }
+                                else
+                                {
+                                    TimerRunning = false;
+                                }
+                            });
+                    }
+                }
+                void localCloseSoftInput()
+                {
+                    foreach (var entry in this.GetVisualTreeDescendants().OfType<Entry>())
+                    {
+                        entry.IsEnabled = false;
+                        entry.IsEnabled = true;
+                    }
                 }
             }
             BindingContext = this;
