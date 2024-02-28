@@ -22,9 +22,7 @@ namespace GlobalClick
                 {
                     entry.TextChanged += localOnAnyInput;
                     entry.Focused += localOnAnyInput;
-                    entry.Completed += (sender, e) =>
-                    {
-                    };
+                    entry.Completed += (sender, e) => localCloseSoftInput();
                 }
                 else
                 {
