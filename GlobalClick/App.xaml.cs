@@ -1,5 +1,6 @@
-﻿
+﻿#if WINDOWS
 using WinRT.Interop;
+#endif
 
 namespace GlobalClick
 {
