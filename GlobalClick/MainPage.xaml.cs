@@ -38,7 +38,6 @@ namespace GlobalClick
         }
         bool _timerRunning = false;
 
-
         protected override void OnAppearing()
         {
             base.OnAppearing();
