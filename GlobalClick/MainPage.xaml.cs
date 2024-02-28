@@ -12,15 +12,29 @@ namespace GlobalClick
             InitializeComponent();
             foreach (var desc in this.GetVisualTreeDescendants().OfType<View>())
             {
-                var tapGestureRecognizer = new TapGestureRecognizer();
-                tapGestureRecognizer.Tapped += (sender, e) =>
+                if (desc is Button button)
+                {
+                    button.Clicked += localOnAnyInput;
+                }
+                else if (desc is Entry entry)
+                {
+                    entry.TextChanged += localOnAnyInput;
+                    entry.Focused += localOnAnyInput;
+                }
+                else
+                {
+                    var tapGestureRecognizer = new TapGestureRecognizer();
+                    tapGestureRecognizer.Tapped += localOnAnyInput;
+                    desc.GestureRecognizers.Add(tapGestureRecognizer);
+                }
+
+                void localOnAnyInput(object sender, EventArgs e)
                 {
                     WatchdogTimer.StartOrRestart(
                         initialAction: () => TimerRunning = true,
                         completeAction: () => TimerRunning = false
                     );
-                };
-                desc.GestureRecognizers.Add(tapGestureRecognizer);
+                }
             }
             BindingContext = this;
         }
