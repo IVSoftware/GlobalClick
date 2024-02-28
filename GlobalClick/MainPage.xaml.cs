@@ -1,6 +1,10 @@
 ﻿using IVSoftware.Portable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+#if WINDOWS
+using Microsoft.Maui.Platform;
+using Microsoft.UI.Xaml;
+#endif
 
 namespace GlobalClick
 {
@@ -11,6 +15,13 @@ namespace GlobalClick
         {
             InitializeComponent();
             BindingContext = this;
+            ClickedAnywhere += (sender, e) =>
+            {
+                WatchdogTimer.StartOrRestart(
+                    initialAction: () => TimerRunning = true,
+                    completeAction: () => TimerRunning = false
+                );
+            };
         }
         private void OnCounterClicked(object sender, EventArgs e)
         {
@@ -55,18 +66,67 @@ namespace GlobalClick
                 switch (wParam) 
                 {
                     case WM_LBUTTONDOWN:
-                        WatchdogTimer.StartOrRestart(
-                            initialAction: () => TimerRunning = true,
-                            completeAction: () => TimerRunning = false
-                        );
+                        var info = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                        Debug.WriteLine($"X: {info.pt.x} Y: {info.pt.y}");
+                        RECT rect = new();
+                        var hWnd = ((App)App.Current).hMainWnd;
+                        if(GetWindowRect(hWnd, out rect))
+                        {
+                            Debug.WriteLine($"Contained {localIsPointInRect()} Left: {rect.Left} Right: {rect.Right} Top: {rect.Top} Bottom: {rect.Bottom}");
+
+                            if (localIsPointInRect())
+                            {
+                                Dispatcher.Dispatch(() => ClickedAnywhere?.Invoke(
+                                    hWnd,
+                                    EventArgs.Empty)
+                                );
+                            }
+
+                            bool localIsPointInRect()
+                            {
+                                if (info.pt.x < rect.Left) return false;
+                                if (info.pt.x > rect.Right) return false;
+                                if (info.pt.y < rect.Top) return false;
+                                if (info.pt.y > rect.Bottom) return false;
+                                return true;
+                            }
+                        }
                         break;
                 }
             }
             return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
         }
+        event EventHandler ClickedAnywhere;
+
         #region P / I N V O K E
 
-        const int WM_LBUTTONDOWN = 0x0201;
+        const int WM_LBUTTONDOWN = 0x0201; 
+        
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MSLLHOOKSTRUCT
+        {
+            public POINT pt;
+            public uint mouseData;
+            public uint flags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
         void SetHook()
         {
             _proc = LowLevelMouseProc;
@@ -98,6 +158,12 @@ namespace GlobalClick
         public static extern IntPtr GetModuleHandle(string lpModuleName);
 
         public const int WH_MOUSE_LL = 14;
+        [DllImport("user32.dll")]
+        public static extern IntPtr WindowFromPoint(POINT Point); 
+        
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
         #endregion P / I N V O K E
     }
     public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
