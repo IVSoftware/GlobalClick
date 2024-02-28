@@ -11,18 +11,34 @@ namespace GlobalClick
     public partial class MainPage : ContentPage
     {
         int count = 0;
+        int _debugCount = 0;
+        List<ContentView>_children = new List<ContentView>();
         public MainPage()
         {
             InitializeComponent();
+
+            foreach (var desc in this.GetVisualTreeDescendants().OfType<View>())
+            {
+                var tapGestureRecognizer = new TapGestureRecognizer();
+                tapGestureRecognizer.Tapped += (sender, e) =>
+                {
+                    WatchdogTimer.StartOrRestart(
+                        initialAction: () => TimerRunning = true,
+                        completeAction: () => TimerRunning = false
+                    );
+                };
+                desc.GestureRecognizers.Add(tapGestureRecognizer);
+            }
             BindingContext = this;
             ClickedAnywhere += (sender, e) =>
             {
-                WatchdogTimer.StartOrRestart(
-                    initialAction: () => TimerRunning = true,
-                    completeAction: () => TimerRunning = false
-                );
+                //WatchdogTimer.StartOrRestart(
+                //    initialAction: () => TimerRunning = true,
+                //    completeAction: () => TimerRunning = false
+                //);
             };
         }
+
         private void OnCounterClicked(object sender, EventArgs e)
         {
             count++;
